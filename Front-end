@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberScan Pro | Web Vulnerability Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap');
+        
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f3f4f6;
+            color: #111827;
+        }
+        
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .scan-progress {
+            background: linear-gradient(90deg, #4f46e5 0%, #a78bfa 50%, #4f46e5 100%);
+            background-size: 200% 100%;
+            animation: progress 2s linear infinite;
+        }
+        
+        @keyframes progress {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .terminal {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .terminal-content {
+            height: 300px;
+            overflow-y: auto;
+        }
+        
+        .glow {
+            box-shadow: 0 0 10px rgba(79, 70, 229, 0.7);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-shield-alt text-2xl"></i>
+                        <h1 class="text-2xl font-bold">CyberScan Pro</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-md transition">
+                            <i class="fas fa-cog mr-2"></i>Settings
+                        </button>
+                        <button class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-md transition">
+                            <i class="fas fa-question-circle mr-2"></i>Help
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Scanner Panel -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">Web Vulnerability Scanner</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="targetUrl" class="block text-sm font-medium text-gray-700 mb-1">Target URL</label>
+                                <div class="flex">
+                                    <input type="text" id="targetUrl" placeholder="https://example.com" 
+                                        class="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:ring-indigo-500 focus:border-indigo-500">
+                                    <button id="scanBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition">
+                                        <i class="fas fa-search mr-2"></i>Scan
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Scan Type</label>
+                                    <select id="scanType" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="full">Full Scan</option>
+                                        <option value="quick">Quick Scan</option>
+                                        <option value="nmap">Nmap Only</option>
+                                        <option value="nikto">Nikto Only</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Scan Intensity</label>
+                                    <select id="scanIntensity" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="normal">Normal</option>
+                                        <option value="aggressive">Aggressive</option>
+                                        <option value="stealth">Stealth</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="saveReport" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                    <label for="saveReport" class="ml-2 block text-sm text-gray-700">Save Report</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="emailReport" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                    <label for="emailReport" class="ml-2 block text-sm text-gray-700">Email Report</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Scan Progress -->
+                    <div id="scanProgress" class="hidden bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Scan Progress</h3>
+                            <div id="scanStatus" class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">
+                                Initializing...
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                    <span>Scan Completion</span>
+                                    <span id="progressPercent">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div id="progressBar" class="bg-indigo-600 h-2.5 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="terminal">
+                                <div class="p-3 border-b border-gray-700 flex justify-between items-center">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                                    </div>
+                                    <div class="text-sm text-gray-400">CyberScan Terminal</div>
+                                </div>
+                                <div id="terminalContent" class="terminal-content p-4 mono text-sm">
+                                    <div class="text-green-400">$ Ready to scan...</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-end">
+                                <button id="stopScanBtn" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition">
+                                    <i class="fas fa-stop mr-2"></i>Stop Scan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Scan Results -->
+                    <div id="scanResults" class="hidden bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Scan Results</h3>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 bg-indigo-100 text-indigo-800 text-sm rounded-md hover:bg-indigo-200 transition">
+                                    <i class="fas fa-download mr-1"></i>Export
+                                </button>
+                                <button class="px-3 py-1 bg-indigo-100 text-indigo-800 text-sm rounded-md hover:bg-indigo-200 transition">
+                                    <i class="fas fa-print mr-1"></i>Print
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <!-- Summary Card -->
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-medium text-gray-800 mb-3">Scan Summary</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="bg-white p-3 rounded-md shadow-sm">
+                                        <div class="flex items-center space-x-2">
+                                            <div class="p-2 bg-red-100 rounded-full">
+                                                <i class="fas fa-exclamation-triangle text-red-500"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm text-gray-500">Critical</div>
+                                                <div id="criticalCount" class="font-bold text-red-600">0</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-white p-3 rounded-md shadow-sm">
+                                        <div class="flex items-center space-x-2">
+                                            <div class="p-2 bg-yellow-100 rounded-full">
+                                                <i class="fas fa-exclamation-circle text-yellow-500"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm text-gray-500">High</div>
+                                                <div id="highCount" class="font-bold text-yellow-600">0</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-white p-3 rounded-md shadow-sm">
+                                        <div class="flex items-center space-x-2">
+                                            <div class="p-2 bg-blue-100 rounded-full">
+                                                <i class="fas fa-info-circle text-blue-500"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm text-gray-500">Medium</div>
+                                                <div id="mediumCount" class="font-bold text-blue-600">0</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Vulnerabilities List -->
+                            <div>
+                                <h4 class="font-medium text-gray-800 mb-3">Detected Vulnerabilities</h4>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vulnerability</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="vulnerabilitiesList" class="bg-white divide-y divide-gray-200">
+                                            <!-- Vulnerabilities will be added here dynamically -->
+                                            <tr>
+                                                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No vulnerabilities detected yet</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Recommendations -->
+                            <div>
+                                <h4 class="font-medium text-gray-800 mb-3">Recommendations</h4>
+                                <div id="recommendationsList" class="space-y-2">
+                                    <div class="p-3 bg-blue-50 rounded-md text-sm text-gray-700">
+                                        Run a scan to get security recommendations for your target.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sidebar -->
+                <div class="space-y-6">
+                    <!-- Recent Scans -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">Recent Scans</h2>
+                        <div class="space-y-3">
+                            <div class="p-3 bg-gray-50 rounded-md flex justify-between items-center">
+                                <div>
+                                    <div class="font-medium">example.com</div>
+                                    <div class="text-xs text-gray-500">2 hours ago</div>
+                                </div>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Completed</span>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded-md flex justify-between items-center">
+                                <div>
+                                    <div class="font-medium">test.site</div>
+                                    <div class="text-xs text-gray-500">Yesterday</div>
+                                </div>
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Partial</span>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded-md flex justify-between items-center">
+                                <div>
+                                    <div class="font-medium">demo.app</div>
+                                    <div class="text-xs text-gray-500">3 days ago</div>
+                                </div>
+                                <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Failed</span>
+                            </div>
+                        </div>
+                        <button class="w-full mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition">
+                            View All Scans
+                        </button>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">Quick Actions</h2>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button class="p-3 bg-indigo-50 rounded-md flex flex-col items-center justify-center hover:bg-indigo-100 transition">
+                                <i class="fas fa-bolt text-indigo-600 mb-1"></i>
+                                <span class="text-sm">Quick Scan</span>
+                            </button>
+                            <button class="p-3 bg-green-50 rounded-md flex flex-col items-center justify-center hover:bg-green-100 transition">
+                                <i class="fas fa-shield-alt text-green-600 mb-1"></i>
+                                <span class="text-sm">Security Check</span>
+                            </button>
+                            <button class="p-3 bg-blue-50 rounded-md flex flex-col items-center justify-center hover:bg-blue-100 transition">
+                                <i class="fas fa-network-wired text-blue-600 mb-1"></i>
+                                <span class="text-sm">Port Scan</span>
+                            </button>
+                            <button class="p-3 bg-purple-50 rounded-md flex flex-col items-center justify-center hover:bg-purple-100 transition">
+                                <i class="fas fa-file-alt text-purple-600 mb-1"></i>
+                                <span class="text-sm">Report</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Statistics -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">Statistics</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-gray-600">Scans Completed</span>
+                                    <span class="font-medium">24</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-indigo-600 h-2 rounded-full" style="width: 80%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-gray-600">Vulnerabilities Found</span>
+                                    <span class="font-medium">156</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-red-500 h-2 rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-gray-600">Critical Issues</span>
+                                    <span class="font-medium">32</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-red-700 h-2 rounded-full" style="width: 20%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white py-6">
+            <div class="container mx-auto px-4">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="mb-4 md:mb-0">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-shield-alt text-xl"></i>
+                            <span class="text-lg font-bold">CyberScan Pro</span>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-1">Advanced Web Vulnerability Scanner</p>
+                    </div>
+                    <div class="flex space-x-6">
+                        <a href="#" class="hover:text-indigo-300 transition">Privacy Policy</a>
+                        <a href="#" class="hover:text-indigo-300 transition">Terms of Service</a>
+                        <a href="#" class="hover:text-indigo-300 transition">Contact</a>
+                    </div>
+                </div>
+                <div class="mt-6 pt-6 border-t border-gray-700 text-center text-sm text-gray-400">
+                    &copy; 2023 CyberScan Pro. All rights reserved.
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const scanBtn = document.getElementById('scanBtn');
+            const stopScanBtn = document.getElementById('stopScanBtn');
+            const targetUrl = document.getElementById('targetUrl');
+            const scanProgress = document.getElementById('scanProgress');
+            const scanResults = document.getElementById('scanResults');
+            const terminalContent = document.getElementById('terminalContent');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const scanStatus = document.getElementById('scanStatus');
+            const vulnerabilitiesList = document.getElementById('vulnerabilitiesList');
+            const recommendationsList = document.getElementById('recommendationsList');
+            const criticalCount = document.getElementById('criticalCount');
+            const highCount = document.getElementById('highCount');
+            const mediumCount = document.getElementById('mediumCount');
+            
+            let scanInterval;
+            let currentProgress = 0;
+            
+            // Simulate scan process
+            scanBtn.addEventListener('click', function() {
+                if (!targetUrl.value) {
+                    alert('Please enter a target URL');
+                    return;
+                }
+                
+                // Reset UI
+                currentProgress = 0;
+                progressBar.style.width = '0%';
+                progressPercent.textContent = '0%';
+                terminalContent.innerHTML = '<div class="text-green-400">$ Starting scan on ' + targetUrl.value + '...</div>';
+                vulnerabilitiesList.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Scan in progress...</td></tr>';
+                recommendationsList.innerHTML = '<div class="p-3 bg-blue-50 rounded-md text-sm text-gray-700">Scan in progress...</div>';
+                
+                // Show progress section
+                scanProgress.classList.remove('hidden');
+                scanResults.classList.add('hidden');
+                scanStatus.textContent = 'Scanning...';
+                scanStatus.className = 'px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full';
+                
+                // Disable scan button
+                scanBtn.disabled = true;
+                scanBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                
+                // Simulate scan progress
+                scanInterval = setInterval(function() {
+                    currentProgress += Math.random() * 10;
+                    if (currentProgress > 100) currentProgress = 100;
+                    
+                    progressBar.style.width = currentProgress + '%';
+                    progressPercent.textContent = Math.floor(currentProgress) + '%';
+                    
+                    // Update terminal with fake output
+                    if (currentProgress < 30) {
+                        if (Math.random() > 0.7) {
+                            addTerminalOutput('$ Initializing nmap scan...');
+                        }
+                    } else if (currentProgress < 70) {
+                        if (Math.random() > 0.7) {
+                            addTerminalOutput('$ Scanning ports... found 3 open ports (80, 443, 8080)');
+                        }
+                    } else {
+                        if (Math.random() > 0.7) {
+                            addTerminalOutput('$ Analyzing vulnerabilities...');
+                        }
+                    }
+                    
+                    // Complete scan
+                    if (currentProgress >= 100) {
+                        completeScan();
+                    }
+                }, 800);
+            });
+            
+            stopScanBtn.addEventListener('click', function() {
+                clearInterval(scanInterval);
+                scanStatus.textContent = 'Stopped';
+                scanStatus.className = 'px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full';
+                addTerminalOutput('$ Scan stopped by user');
+                scanBtn.disabled = false;
+                scanBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            });
+            
+            function addTerminalOutput(text) {
+                const newLine = document.createElement('div');
+                newLine.className = 'text-green-400';
+                newLine.textContent = text;
+                terminalContent.appendChild(newLine);
+                terminalContent.scrollTop = terminalContent.scrollHeight;
+            }
+            
+            function completeScan() {
+                clearInterval(scanInterval);
+                scanStatus.textContent = 'Completed';
+                scanStatus.className = 'px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full';
+                addTerminalOutput('$ Scan completed successfully');
+                
+                // Generate fake results
+                generateFakeResults();
+                
+                // Show results section
+                scanResults.classList.remove('hidden');
+                
+                // Re-enable scan button
+                scanBtn.disabled = false;
+                scanBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            
+            function generateFakeResults() {
+                // Clear previous results
+                vulnerabilitiesList.innerHTML = '';
+                
+                // Generate random vulnerabilities
+                const vulnerabilities = [
+                    {
+                        severity: 'Critical',
+                        name: 'SQL Injection',
+                        details: 'Possible SQL injection vulnerability in login form',
+                        action: 'Patch immediately'
+                    },
+                    {
+                        severity: 'High',
+                        name: 'XSS Vulnerability',
+                        details: 'Reflected XSS in search parameter',
+                        action: 'Sanitize input'
+                    },
+                    {
+                        severity: 'Medium',
+                        name: 'CSRF Protection Missing',
+                        details: 'No anti-CSRF tokens in forms',
+                        action: 'Implement CSRF tokens'
+                    },
+                    {
+                        severity: 'Low',
+                        name: 'Outdated jQuery',
+                        details: 'Using jQuery 1.11.3 which has known vulnerabilities',
+                        action: 'Update to latest version'
+                    }
+                ];
+                
+                // Update counts
+                criticalCount.textContent = '1';
+                highCount.textContent = '1';
+                mediumCount.textContent = '1';
+                
+                // Add vulnerabilities to table
+                vulnerabilities.forEach(vuln => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    
+                    let severityClass = '';
+                    switch(vuln.severity) {
+                        case 'Critical':
+                            severityClass = 'text-red-600';
+                            break;
+                        case 'High':
+                            severityClass = 'text-yellow-600';
+                            break;
+                        case 'Medium':
+                            severityClass = 'text-blue-600';
+                            break;
+                        default:
+                            severityClass = 'text-gray-600';
+                    }
+                    
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${severityClass}">${vuln.severity}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${vuln.name}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${vuln.details}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${vuln.action}</td>
+                    `;
+                    
+                    vulnerabilitiesList.appendChild(row);
+                });
+                
+                // Add recommendations
+                recommendationsList.innerHTML = `
+                    <div class="p-3 bg-green-50 rounded-md text-sm text-gray-700">
+                        <strong>1.</strong> Implement WAF rules to protect against SQL injection and XSS attacks.
+                    </div>
+                    <div class="p-3 bg-blue-50 rounded-md text-sm text-gray-700">
+                        <strong>2.</strong> Update all JavaScript libraries to their latest secure versions.
+                    </div>
+                    <div class="p-3 bg-yellow-50 rounded-md text-sm text-gray-700">
+                        <strong>3.</strong> Add CSRF protection tokens to all form submissions.
+                    </div>
+                    <div class="p-3 bg-indigo-50 rounded-md text-sm text-gray-700">
+                        <strong>4.</strong> Consider implementing Content Security Policy (CSP) headers.
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
