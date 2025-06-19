@@ -1,6 +1,3 @@
-
-
-````markdown
 # Web Vulnerability Scanner - `vuln_scan.sh`
 
 A simple yet powerful Bash script for scanning web servers for common vulnerabilities using **Nmap** and **Nikto**. Ideal for quick assessments, automation, and penetration testing practice.
@@ -29,9 +26,7 @@ Install on Debian-based systems:
 ```bash
 sudo apt update
 sudo apt install nmap nikto -y
-````
 
----
 
 ## 📥 Installation
 
