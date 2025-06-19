@@ -1,0 +1,185 @@
+#!/bin/bash
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Function to display usage information
+usage() {
+    echo -e "${YELLOW}Usage:${NC} $0 <target_url> [options]"
+    echo -e "Options:"
+    echo -e "  -q, --quick       Perform a quick scan (only common ports)"
+    echo -e "  -f, --full        Perform a comprehensive scan (default)"
+    echo -e "  -o, --output DIR  Specify output directory (default: ./scan_results)"
+    echo -e "  -v, --verbose     Show verbose output"
+    echo -e "  -h, --help        Display this help message"
+    exit 1
+}
+
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to validate URL format
+validate_url() {
+    local url_regex='^(https?|ftp)://[^\s/$.?#].[^\s]*$'
+    [[ $1 =~ $url_regex ]] || [[ $1 =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]
+}
+
+# Initialize variables
+TARGET=""
+SCAN_TYPE="full"
+OUTPUT_DIR="./scan_results"
+VERBOSE=false
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -q|--quick)
+            SCAN_TYPE="quick"
+            shift
+            ;;
+        -f|--full)
+            SCAN_TYPE="full"
+            shift
+            ;;
+        -o|--output)
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            if [[ -z "$TARGET" ]]; then
+                TARGET="$1"
+                shift
+            else
+                echo -e "${RED}Error:${NC} Multiple targets specified or invalid option: $1"
+                usage
+            fi
+            ;;
+    esac
+done
+
+# Validate target is provided
+if [[ -z "$TARGET" ]]; then
+    echo -e "${RED}Error:${NC} No target specified"
+    usage
+fi
+
+# Validate URL format
+if ! validate_url "$TARGET"; then
+    echo -e "${RED}Error:${NC} Invalid URL format: $TARGET"
+    echo -e "Please provide a valid URL (e.g., example.com or https://example.com)"
+    exit 1
+fi
+
+# Check required tools are installed
+if ! command_exists nmap; then
+    echo -e "${RED}Error:${NC} nmap is not installed. Please install it first."
+    exit 1
+fi
+
+if ! command_exists nikto; then
+    echo -e "${RED}Error:${NC} nikto is not installed. Please install it first."
+    exit 1
+fi
+
+# Create output directory
+mkdir -p "$OUTPUT_DIR" || {
+    echo -e "${RED}Error:${NC} Failed to create output directory: $OUTPUT_DIR"
+    exit 1
+}
+
+# Define output filenames
+NMAP_OUTPUT="$OUTPUT_DIR/nmap_scan_${TIMESTAMP}.txt"
+NIKTO_OUTPUT="$OUTPUT_DIR/nikto_scan_${TIMESTAMP}.txt"
+SUMMARY_FILE="$OUTPUT_DIR/scan_summary_${TIMESTAMP}.txt"
+
+# Start scan
+echo -e "${BLUE}[*]${NC} Starting web vulnerability scan on ${GREEN}$TARGET${NC}"
+echo -e "${BLUE}[*]${NC} Scan type: ${YELLOW}$SCAN_TYPE${NC}"
+echo -e "${BLUE}[*]${NC} Output directory: ${GREEN}$OUTPUT_DIR${NC}"
+echo -e "${BLUE}[*]${NC} Timestamp: ${GREEN}$TIMESTAMP${NC}"
+
+# Run nmap scan
+echo -e "\n${BLUE}[*]${NC} Running nmap for vulnerability discovery..."
+NMAP_CMD="nmap"
+if [[ "$SCAN_TYPE" == "quick" ]]; then
+    NMAP_CMD+=" -T4 --top-ports 100"
+else
+    NMAP_CMD+=" -A --script=vuln"
+fi
+NMAP_CMD+=" $TARGET -oN $NMAP_OUTPUT"
+
+if $VERBOSE; then
+    echo -e "${YELLOW}[DEBUG]${NC} Command: $NMAP_CMD"
+fi
+
+eval "$NMAP_CMD"
+NMAP_EXIT=$?
+
+if [[ $NMAP_EXIT -ne 0 ]]; then
+    echo -e "${RED}[!]${NC} nmap scan failed with exit code $NMAP_EXIT"
+else
+    echo -e "${GREEN}[+]${NC} nmap scan completed successfully"
+fi
+
+# Run nikto scan
+echo -e "\n${BLUE}[*]${NC} Running nikto scan..."
+NIKTO_CMD="nikto -h $TARGET -output $NIKTO_OUTPUT"
+
+if $VERBOSE; then
+    echo -e "${YELLOW}[DEBUG]${NC} Command: $NIKTO_CMD"
+fi
+
+eval "$NIKTO_CMD"
+NIKTO_EXIT=$?
+
+if [[ $NIKTO_EXIT -ne 0 ]]; then
+    echo -e "${RED}[!]${NC} nikto scan failed with exit code $NIKTO_EXIT"
+else
+    echo -e "${GREEN}[+]${NC} nikto scan completed successfully"
+fi
+
+# Generate summary
+echo -e "\n${BLUE}[*]${NC} Generating scan summary..."
+{
+    echo "Scan Summary"
+    echo "============"
+    echo "Target: $TARGET"
+    echo "Scan Type: $SCAN_TYPE"
+    echo "Timestamp: $TIMESTAMP"
+    echo ""
+    echo "Scan Results"
+    echo "------------"
+    echo "nmap exit code: $NMAP_EXIT"
+    echo "nikto exit code: $NIKTO_EXIT"
+    echo ""
+    echo "Output Files"
+    echo "------------"
+    echo "nmap results: $NMAP_OUTPUT"
+    echo "nikto results: $NIKTO_OUTPUT"
+} > "$SUMMARY_FILE"
+
+echo -e "${GREEN}[+]${NC} Scan completed. Results saved in:"
+echo -e "  - ${GREEN}$NMAP_OUTPUT${NC}"
+echo -e "  - ${GREEN}$NIKTO_OUTPUT${NC}"
+echo -e "  - ${GREEN}$SUMMARY_FILE${NC}"
+
+# Exit with appropriate code
+if [[ $NMAP_EXIT -ne 0 ]] || [[ $NIKTO_EXIT -ne 0 ]]; then
+    exit 1
+else
+    exit 0
+fi
