@@ -1,0 +1,15 @@
+#!/bin/bash
+if [ -z "$1" ]; then
+    echo "usage: $0 <target_url>"
+    exit 1
+fi
+
+Target=$1
+echo "starting web vulnerability scan on $Target..."
+echo "Running nmap for vulnerability discovery"
+nmap -A --script=vuln $Target -oN nmap_scan.txt
+echo "Running nikto"
+nikto -h $Target -o nikto_scan.txt
+echo "Scan completed. Results are saved in:"
+echo " - nmap_scan.txt"
+echo " - nikto_scan.txt"
