@@ -43,7 +43,7 @@ Completion Message:
 
 bash
 Run
-Copy code
+
 echo "Scan completed. Results are saved in:"
 echo " - nmap_scan.txt"
 echo " - nikto_scan.txt"
