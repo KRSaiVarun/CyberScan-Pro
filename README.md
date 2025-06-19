@@ -107,7 +107,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### ✅ Next Steps
 
-1. Replace `<your-username>` and `<repo-name>` with your actual GitHub username and repository name.
+1. Replace `<KR Sai Varun>` and `<CyberScan-Pro>` with your actual GitHub username and repository name.
 2. Save the above content as `README.md` in your project root directory.
 3. Commit and push to GitHub:
 
